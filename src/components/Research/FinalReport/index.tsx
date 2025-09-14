@@ -51,7 +51,7 @@ const formSchema = z.object({
 function FinalReport() {
   const { t } = useTranslation();
   const taskStore = useTaskStore();
-  const { status, writeFinalReport } = useDeepResearch();
+  const { status, writeFinalPrompt } = useDeepResearch();
   const { generateId } = useKnowledge();
   const {
     formattedTime,
@@ -80,18 +80,18 @@ function FinalReport() {
       accurateTimerStart();
       setIsWriting(true);
       if (values.requirement) setRequirement(values.requirement);
-      await writeFinalReport();
+      await writeFinalPrompt();
     } finally {
       setIsWriting(false);
       accurateTimerStop();
     }
   }
 
-  function getFinakReportContent() {
-    const { finalReport, resources, sources } = useTaskStore.getState();
+  function getFinalPromptContent() {
+    const { finalPrompt, resources, sources } = useTaskStore.getState();
 
     return [
-      finalReport,
+      finalPrompt,
       resources.length > 0
         ? [
             "---",
@@ -127,7 +127,7 @@ function FinalReport() {
     save({
       id: generateId("knowledge"),
       title,
-      content: getFinakReportContent(),
+      content: getFinalPromptContent(),
       type: "knowledge",
       createdAt: currentTime,
       updatedAt: currentTime,
@@ -137,7 +137,7 @@ function FinalReport() {
 
   function handleDownloadMarkdown() {
     downloadFile(
-      getFinakReportContent(),
+      getFinalPromptContent(),
       `${taskStore.title}.md`,
       "text/markdown;charset=utf-8"
     );
@@ -145,7 +145,7 @@ function FinalReport() {
 
   function handleDownloadWord() {
     // markdownToDoc returns HTML that Word can read as a legacy .doc file
-    const docHtml = markdownToDoc(getFinakReportContent());
+    const docHtml = markdownToDoc(getFinalPromptContent());
     downloadFile(
       docHtml,
       `${taskStore.title}.doc`,
@@ -170,21 +170,21 @@ function FinalReport() {
         <h3 className="font-semibold text-lg border-b mb-2 leading-10 print:hidden">
           {t("research.finalReport.title")}
         </h3>
-        {taskStore.finalReport !== "" ? (
+        {taskStore.finalPrompt !== "" ? (
           <article>
             <MagicDown
               className="min-h-72"
-              value={taskStore.finalReport}
-              onChange={(value) => taskStore.updateFinalReport(value)}
+              value={taskStore.finalPrompt}
+              onChange={(value) => taskStore.updateFinalPrompt(value)}
               tools={
                 <>
                   <div className="px-1">
                     <Separator className="dark:bg-slate-700" />
                   </div>
                   <Artifact
-                    value={taskStore.finalReport}
+                    value={taskStore.finalPrompt}
                     systemInstruction={getSystemPrompt()}
-                    onChange={taskStore.updateFinalReport}
+                    onChange={taskStore.updateFinalPrompt}
                     buttonClassName="float-menu-button"
                     dropdownMenuSideOffset={8}
                     tooltipSideOffset={8}
@@ -333,7 +333,7 @@ function FinalReport() {
                     <span>{status}</span>
                     <small className="font-mono">{formattedTime}</small>
                   </>
-                ) : taskStore.finalReport === "" ? (
+                ) : taskStore.finalPrompt === "" ? (
                   t("research.common.writeReport")
                 ) : (
                   t("research.common.rewriteReport")
@@ -342,7 +342,7 @@ function FinalReport() {
             </form>
           </Form>
         ) : null}
-        {taskStore.finalReport === "" && !taskFinished ? (
+        {taskStore.finalPrompt === "" && !taskFinished ? (
           <div>{t("research.finalReport.emptyTip")}</div>
         ) : null}
       </section>

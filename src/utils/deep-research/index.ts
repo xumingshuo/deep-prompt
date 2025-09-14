@@ -8,7 +8,7 @@ import {
   generateSerpQueriesPrompt,
   processResultPrompt,
   processSearchResultPrompt,
-  writeFinalReportPrompt,
+  writeFinalPromptPrompt,
   getSERPQuerySchema,
 } from "./prompts";
 import { outputGuidelinesPrompt } from "@/constants/prompts";
@@ -34,9 +34,9 @@ export interface DeepResearchOptions {
   onMessage?: (event: string, data: any) => void;
 }
 
-interface FinalReportResult {
+interface FinalPromptResult {
   title: string;
-  finalReport: string;
+  finalPrompt: string;
   learnings: string[];
   sources: Source[];
   images: ImageSource[];
@@ -381,14 +381,12 @@ class DeepResearch {
     return results;
   }
 
-  async writeFinalReport(
+  async writeFinalPrompt(
     reportPlan: string,
     tasks: DeepResearchSearchResult[],
-    enableCitationImage = true,
-    enableReferences = true,
-    enableFileFormatResource = true
-  ): Promise<FinalReportResult> {
-    this.onMessage("progress", { step: "final-report", status: "start" });
+    requirement = ""
+  ): Promise<FinalPromptResult> {
+    this.onMessage("progress", { step: "final-prompt", status: "start" });
     const thinkTagStreamProcessor = new ThinkTagStreamProcessor();
     const learnings = tasks.map((item) => item.learning);
     const sources: Source[] = unique(
@@ -400,10 +398,8 @@ class DeepResearch {
       (item) => item.url
     );
 
-    const sourceList = enableReferences
-      ? sources.map((item) => pick(item, ["title", "url"]))
-      : [];
-    const imageList = enableCitationImage ? images : [];
+    const sourceList = sources.map((item) => pick(item, ["title", "url"]));
+    const imageList = images;
     const file = new File(
       [
         [
@@ -435,28 +431,23 @@ class DeepResearch {
       {
         type: "text",
         text: [
-          writeFinalReportPrompt(
+          writeFinalPromptPrompt(
             reportPlan,
             learnings,
             sourceList,
             imageList,
-            "",
-            imageList.length > 0 && enableCitationImage,
-            sourceList.length > 0 && enableReferences,
-            enableFileFormatResource
+            requirement
           ),
           this.getResponseLanguagePrompt(),
         ].join("\n\n"),
       },
     ];
-    if (enableFileFormatResource) {
-      messageContent.push({
-        type: "file",
-        mimeType: "text/markdown",
-        filename: "resources.md",
-        data: fileData,
-      });
-    }
+    messageContent.push({
+      type: "file",
+      mimeType: "text/markdown",
+      filename: "resources.md",
+      data: fileData,
+    });
 
     const result = streamText({
       model: await this.getThinkingModel(),
@@ -470,7 +461,7 @@ class DeepResearch {
       temperature: 0.5,
     });
     let content = "";
-    this.onMessage("message", { type: "text", text: "<final-report>\n" });
+    this.onMessage("message", { type: "text", text: "<final-prompt>\n" });
     for await (const part of result.fullStream) {
       if (part.type === "text-delta") {
         thinkTagStreamProcessor.processChunk(
@@ -503,7 +494,7 @@ class DeepResearch {
         }
       }
     }
-    this.onMessage("message", { type: "text", text: "\n</final-report>\n\n" });
+    this.onMessage("message", { type: "text", text: "\n</final-prompt>\n\n" });
     thinkTagStreamProcessor.end();
 
     const title = content
@@ -512,39 +503,35 @@ class DeepResearch {
       .replaceAll("*", "")
       .trim();
 
-    const finalReportResult: FinalReportResult = {
+    const finalPromptResult: FinalPromptResult = {
       title,
-      finalReport: content,
+      finalPrompt: content,
       learnings,
       sources,
       images,
     };
     this.onMessage("progress", {
-      step: "final-report",
+      step: "final-prompt",
       status: "end",
-      data: finalReportResult,
+      data: finalPromptResult,
     });
-    return finalReportResult;
+    return finalPromptResult;
   }
 
   async start(
     query: string,
-    enableCitationImage = true,
-    enableReferences = true,
-    enableFileFormatResource = false
+    requirement = ""
   ) {
     try {
       const reportPlan = await this.writeReportPlan(query);
       const tasks = await this.generateSERPQuery(reportPlan);
-      const results = await this.runSearchTask(tasks, enableReferences);
-      const finalReport = await this.writeFinalReport(
+      const results = await this.runSearchTask(tasks, true);
+      const finalPrompt = await this.writeFinalPrompt(
         reportPlan,
         results,
-        enableCitationImage,
-        enableReferences,
-        enableFileFormatResource
+        requirement
       );
-      return finalReport;
+      return finalPrompt;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
       this.onMessage("error", { message: errorMessage });

@@ -28,7 +28,7 @@ import {
   processSearchResultPrompt,
   processSearchKnowledgeResultPrompt,
   reviewSerpQueriesPrompt,
-  writeFinalReportPrompt,
+  writeFinalPromptPrompt,
   getSERPQuerySchema,
 } from "@/utils/deep-research/prompts";
 import { isNetworkingModel } from "@/utils/model";
@@ -506,9 +506,7 @@ function useDeepResearch() {
     }
   }
 
-  async function writeFinalReport() {
-    const { citationImage, references, useFileFormatResource } =
-      useSettingStore.getState();
+  async function writeFinalPrompt() {
     const {
       reportPlan,
       tasks,
@@ -516,12 +514,12 @@ function useDeepResearch() {
       setTitle,
       setSources,
       requirement,
-      updateFinalReport,
+      updateFinalPrompt,
     } = useTaskStore.getState();
     const { save } = useHistoryStore.getState();
     const { thinkingModel } = getModel();
     setStatus(t("research.common.writing"));
-    updateFinalReport("");
+    updateFinalPrompt("");
     setTitle("");
     setSources([]);
     const learnings = tasks.map((item) => item.learning);
@@ -533,15 +531,10 @@ function useDeepResearch() {
       flat(tasks.map((item) => item.images || [])),
       (item) => item.url
     );
-    const enableCitationImage = images.length > 0 && citationImage === "enable";
-    const enableReferences = sources.length > 0 && references === "enable";
-    const enableFileFormatResource = useFileFormatResource === "enable";
     const thinkTagStreamProcessor = new ThinkTagStreamProcessor();
 
-    const sourceList = enableReferences
-      ? sources.map((item) => pick(item, ["title", "url"]))
-      : [];
-    const imageList = enableCitationImage ? images : [];
+    const sourceList = sources.map((item) => pick(item, ["title", "url"]));
+    const imageList = images;
     const file = new File(
       [
         [
@@ -572,28 +565,23 @@ function useDeepResearch() {
       {
         type: "text",
         text: [
-          writeFinalReportPrompt(
+          writeFinalPromptPrompt(
             reportPlan,
             learnings,
             sourceList,
             imageList,
-            requirement,
-            enableCitationImage,
-            enableReferences,
-            enableFileFormatResource
+            requirement
           ),
           getResponseLanguagePrompt(),
         ].join("\n\n"),
       },
     ];
-    if (enableFileFormatResource) {
-      messageContent.push({
-        type: "file",
-        mimeType: "text/markdown",
-        filename: "resources.md",
-        data: fileData,
-      });
-    }
+    messageContent.push({
+      type: "file",
+      mimeType: "text/markdown",
+      filename: "resources.md",
+      data: fileData,
+    });
 
     const result = streamText({
       model: await createModelProvider(thinkingModel),
@@ -616,7 +604,7 @@ function useDeepResearch() {
           part.textDelta,
           (data) => {
             content += data;
-            updateFinalReport(content);
+            updateFinalPrompt(content);
           },
           (data) => {
             reasoning += data;
@@ -638,7 +626,7 @@ function useDeepResearch() {
               }`
           )
           .join("\n");
-      updateFinalReport(content);
+      updateFinalPrompt(content);
     }
     if (content.length > 0) {
       const title = (content || "")
@@ -722,7 +710,7 @@ function useDeepResearch() {
     writeReportPlan,
     runSearchTask,
     reviewSearchResult,
-    writeFinalReport,
+    writeFinalPrompt,
   };
 }
 

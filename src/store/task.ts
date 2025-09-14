@@ -14,7 +14,7 @@ export interface TaskStore {
   tasks: SearchTask[];
   requirement: string;
   title: string;
-  finalReport: string;
+  finalPrompt: string;
   sources: Source[];
   images: ImageSource[];
   knowledgeGraph: string;
@@ -35,7 +35,7 @@ interface TaskActions {
   removeResource: (id: string) => boolean;
   updateQuestions: (questions: string) => void;
   updateReportPlan: (plan: string) => void;
-  updateFinalReport: (report: string) => void;
+  updateFinalPrompt: (prompt: string) => void;
   setSources: (sources: Source[]) => void;
   setImages: (images: Source[]) => void;
   setFeedback: (feedback: string) => void;
@@ -58,7 +58,7 @@ const defaultValues: TaskStore = {
   tasks: [],
   requirement: "",
   title: "",
-  finalReport: "",
+  finalPrompt: "",
   sources: [],
   images: [],
   knowledgeGraph: "",
@@ -103,7 +103,7 @@ export const useTaskStore = create(
       },
       updateQuestions: (questions) => set(() => ({ questions })),
       updateReportPlan: (plan) => set(() => ({ reportPlan: plan })),
-      updateFinalReport: (report) => set(() => ({ finalReport: report })),
+      updateFinalPrompt: (prompt) => set(() => ({ finalPrompt: prompt })),
       setSources: (sources) => set(() => ({ sources })),
       setImages: (images) => set(() => ({ images })),
       setFeedback: (feedback) => set(() => ({ feedback })),

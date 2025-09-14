@@ -12,7 +12,7 @@ import {
   reviewPrompt,
   finalReportCitationImagePrompt,
   finalReportReferencesPrompt,
-  finalReportPrompt,
+  finalPromptPrompt,
 } from "@/constants/prompts";
 
 export function getSERPQuerySchema() {
@@ -113,15 +113,12 @@ export function reviewSerpQueriesPrompt(
     .replace("{outputSchema}", getSERPQueryOutputSchema());
 }
 
-export function writeFinalReportPrompt(
+export function writeFinalPromptPrompt(
   plan: string,
   learning: string[],
   source: Source[],
   images: ImageSource[],
-  requirement: string,
-  enableCitationImage: boolean,
-  enableReferences: boolean,
-  enableFileFormatResource: boolean
+  requirement: string
 ) {
   const learnings = learning.map(
     (detail) => `<learning>\n${detail}\n</learning>`
@@ -133,31 +130,25 @@ export function writeFinalReportPrompt(
   const imageList = images.map(
     (source, idx) => `${idx + 1}. ![${source.description}](${source.url})`
   );
-  return (
-    finalReportPrompt +
-    (enableCitationImage
-      ? `\n**Including meaningful images from the previous research in the report is very helpful.**\n\n${finalReportCitationImagePrompt}`
-      : "") +
-    (enableReferences ? `\n\n${finalReportReferencesPrompt}` : "")
-  )
+  return finalPromptPrompt
     .replace("{plan}", plan)
-    .replace(
-      "{learnings}",
-      enableFileFormatResource
-        ? "**Please get all the learnings information from the attached file `resources.md`.**"
-        : learnings.join("\n")
-    )
-    .replace(
-      "{sources}",
-      enableFileFormatResource
-        ? "**Please get all the sources from the attached file `resources.md`.**"
-        : sources.join("\n")
-    )
-    .replace(
-      "{images}",
-      enableFileFormatResource
-        ? "**Please get all the images from the attached file `resources.md`.**"
-        : imageList.join("\n")
-    )
+    .replace("{learnings}", learnings.join("\n"))
+    .replace("{sources}", sources.join("\n"))
+    .replace("{images}", imageList.join("\n"))
     .replace("{requirement}", requirement);
+}
+
+// Keep the legacy function for backward compatibility
+export function writeFinalReportPrompt(
+  plan: string,
+  learning: string[],
+  source: Source[],
+  images: ImageSource[],
+  requirement: string,
+  enableCitationImage: boolean,
+  enableReferences: boolean,
+  enableFileFormatResource: boolean
+) {
+  // For now, redirect to the new prompt function
+  return writeFinalPromptPrompt(plan, learning, source, images, requirement);
 }
